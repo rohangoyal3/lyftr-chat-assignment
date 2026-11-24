@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: lyftr-chat-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    disk:
+      name: lyftr-chat-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: LLM_API_KEYS
+        sync: false
+      - key: LLM_MODEL
+        value: gemini/gemini-3.5-flash-lite
+      - key: DATABASE_URL
+        value: sqlite:////data/app.db
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ENABLE_FAILURE_SIMULATION
+        value: "true"
+
+  - type: web
+    name: lyftr-chat-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: VITE_API_BASE_URL
+        sync: false
