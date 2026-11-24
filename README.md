@@ -1,6 +1,6 @@
-# Lyftr Chat
+# Milo Chat
 
-Lyftr Chat is a React and FastAPI chatbot with SQLite conversation history, automatic LiteLLM key failover, and per-reply cache, model, latency, and token metadata.
+Milo Chat is a React and FastAPI chatbot with SQLite conversation history, automatic LiteLLM key failover, and per-reply cache, model, latency, and token metadata.
 
 ## Live URLs
 

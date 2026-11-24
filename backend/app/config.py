@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 
 DEFAULT_MODEL = "gemini/gemini-3.5-flash-lite"
-DEFAULT_PROMPT = "You are Lyftr, a helpful assistant. Give clear, accurate answers."
+DEFAULT_PROMPT = "You are Milo, a helpful assistant. Give clear, accurate answers."
 DEFAULT_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
 
 
