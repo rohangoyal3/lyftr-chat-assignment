@@ -1,50 +1,40 @@
 # Milo Chat
 
-Milo Chat is a React and FastAPI chatbot with SQLite conversation history, automatic LiteLLM key failover, and per-reply cache, model, latency, and token metadata.
+Milo is a multi-turn chatbot built for the Lyftr AI Full-Stack Assignment. It keeps conversation context in SQLite and uses LiteLLM to cache responses and switch API keys when providers fail. Each reply shows its source, model, server latency, and token usage so you can verify what happened from the chat interface.
 
 ## Live URLs
 
-| Deliverable | URL |
+| Submission deliverable | Link |
 | --- | --- |
-| Frontend | [Milo on Vercel](https://lyftr-chat-assignment.vercel.app/) |
-| Backend | [FastAPI on Render](https://lyftr-chat-assignment.onrender.com/) |
+| Frontend URL | [Open Milo on Vercel](https://lyftr-chat-assignment.vercel.app/) |
+| Backend API base URL | [FastAPI on Render](https://lyftr-chat-assignment.onrender.com/) · [Health check](https://lyftr-chat-assignment.onrender.com/health) |
 | Public GitHub repository | [rohangoyal3/lyftr-chat-assignment](https://github.com/rohangoyal3/lyftr-chat-assignment) |
-| Demo video | [Watch the demo on Google Drive](https://drive.google.com/file/d/1yszXNRWwyFb3PTw41qn3ZLYZFQ7sm1ym/view?usp=drive_link) |
-
-### Deploy on Render
-
-1. Push this project to a public GitHub repository. If starting from the local checkout, commit the project files and push to the empty repository you create. `.env`, SQLite files, and the assignment PDF are ignored.
-2. In Render, create a Blueprint from the repository. [`render.yaml`](render.yaml) provisions a Docker backend with a persistent disk mounted at `/data` and a static frontend. Render persistent disks require a paid backend service. [Render Blueprints](https://render.com/docs/infrastructure-as-code) · [Persistent disks](https://render.com/docs/disks)
-3. Enter two distinct provider keys in the backend's `LLM_API_KEYS` secret. Use keys with access to `gemini/gemini-3.5-flash-lite` or set `LLM_MODEL` to your provider's LiteLLM model name. Separate quota pools make failover useful when a project exceeds its quota. [LiteLLM model providers](https://docs.litellm.ai/docs/providers)
-4. Enter the public frontend origin, such as `https://lyftr-chat-web.onrender.com`, in the backend's `ALLOWED_ORIGINS`. Set the frontend's `VITE_API_BASE_URL` to the public backend URL, such as `https://lyftr-chat-api.onrender.com`. The service names can vary. If Render assigns different URLs, update both variables and rebuild the frontend.
-5. Check the public backend `/health`, run the verification script below against the public API, and open the public frontend to send a message. Update the table with the verified links.
+| Demo video | [Watch the narrated walkthrough on Google Drive](https://drive.google.com/file/d/1yszXNRWwyFb3PTw41qn3ZLYZFQ7sm1ym/view?usp=drive_link) |
 
 ## Run locally
 
-Copy `.env.example` to `.env` in the repository root and set `LLM_API_KEYS` to two comma-separated keys. Set `LLM_MODEL` if your keys use a different provider or model. Keep `.env` local and use hosting secrets for deployment.
+Clone the repository and copy [`.env.example`](.env.example) to `.env` in the project root. Set `LLM_API_KEYS` to two distinct, comma-separated keys with access to `LLM_MODEL`. The default model is `gemini/gemini-3.5-flash-lite`. Store real keys in `.env` locally or in the backend host's environment settings.
+
+```sh
+git clone https://github.com/rohangoyal3/lyftr-chat-assignment.git
+cd lyftr-chat-assignment
+```
 
 ### With Docker
 
-With Docker Compose v2 and `make` installed, run from the repository root:
+With Docker Compose and `make` installed, run this from the project root.
 
 ```sh
 make up
 ```
 
-- Frontend at `http://localhost:3000`
-- Backend health at `http://localhost:8000/health`
-
-Run `make down` to stop both containers. The named `lyftr_data` volume retains the SQLite database across restarts and `make down` followed by `make up`. On a machine without `make`, use `docker compose up --build -d` and `docker compose down`.
+Open the [local frontend](http://localhost:3000/) and check [local API health](http://localhost:8000/health). Run `make down` to stop both containers. The named `lyftr_data` volume retains the SQLite file between runs. The equivalent Compose commands are `docker compose up --build -d` and `docker compose down`.
 
 ### Without Docker
 
-Use Python 3.11+ and Node.js 20+ with npm. In one terminal, from the repository root:
+Use Python 3.11+ and Node.js 20+ with npm. From the project root, create a virtual environment with `python -m venv .venv`. Activate it with `.\.venv\Scripts\Activate.ps1` in PowerShell or `source .venv/bin/activate` on macOS and Linux.
 
-```sh
-python -m venv .venv
-```
-
-Activate the virtual environment with `.venv\Scripts\Activate.ps1` in PowerShell or `source .venv/bin/activate` on macOS/Linux. Then start the API:
+Start the backend in the first terminal.
 
 ```sh
 python -m pip install -r backend/requirements.txt
@@ -52,7 +42,7 @@ cd backend
 python -m app
 ```
 
-In a second terminal, from the repository root:
+In a second terminal, start the frontend from the project root.
 
 ```sh
 cd frontend
@@ -60,33 +50,83 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. In standalone mode SQLite defaults to `backend/data/app.db`. To change the frontend's API target, set `VITE_API_BASE_URL` in `frontend/.env.local` or export it in the frontend terminal before starting Vite. Compose reads it from the root `.env` at build time.
+The frontend serves port `3000` and the backend serves port `8000` by default. With these standalone commands, SQLite writes to `backend/data/app.db`.
 
-| Setting | Default or meaning |
+### Configuration
+
+| Variable | Purpose and default |
 | --- | --- |
-| `LLM_API_KEYS` | Required. Comma-separated keys, used in order as `key_1`, `key_2`, and so on |
-| `LLM_MODEL` | `gemini/gemini-3.5-flash-lite` |
-| `LLM_API_BASE` | Optional provider API base for a compatible endpoint |
-| `DATABASE_URL` | `sqlite:///./data/app.db` standalone, `sqlite:////data/app.db` in Docker |
-| `ALLOWED_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` |
-| `ENABLE_FAILURE_SIMULATION` | `true` in `.env.example`, Compose and the Render Blueprint, `false` when omitted in standalone mode |
-| `DEFAULT_SYSTEM_PROMPT` | A short prompt for clear and accurate answers |
-| `LLM_TIMEOUT_SECONDS` | `20` seconds per provider attempt |
-| `CACHE_TTL_SECONDS` | `3600` seconds, with in-memory capacity managed by LiteLLM |
-| `HOST`, `PORT` | `0.0.0.0`, `8000` for the standalone backend |
-| `VITE_API_BASE_URL` | `http://localhost:8000`, baked into the frontend build |
+| `LLM_API_KEYS` | Required pool of two or more distinct provider keys, tried in order as `key_1`, `key_2`, and so on |
+| `LLM_MODEL` | LiteLLM model name. Defaults to `gemini/gemini-3.5-flash-lite` |
+| `LLM_API_BASE` | Optional provider endpoint override |
+| `DATABASE_URL` | `sqlite:///./data/app.db` in standalone mode and `sqlite:////data/app.db` in Docker |
+| `ALLOWED_ORIGINS` | Comma-separated frontend origins. Defaults to localhost and `127.0.0.1` on port `3000` |
+| `ENABLE_FAILURE_SIMULATION` | Enables the request header for failover testing. The template and Compose enable it. Standalone mode defaults to `false` when unset |
+| `DEFAULT_SYSTEM_PROMPT` | Default assistant instructions for each session |
+| `LLM_TIMEOUT_SECONDS` | Timeout per provider attempt. Defaults to `20` |
+| `CACHE_TTL_SECONDS` | Lifetime of a cached reply. Defaults to `3600` |
+| `HOST`, `PORT` | Backend bind address and port. Standalone defaults are `0.0.0.0` and `8000` |
+| `VITE_API_BASE_URL` | Frontend's API base URL. Defaults to `http://localhost:8000` and is read at build time |
 
 ## Design decisions
 
-- **Ordered fallback.** LiteLLM Router gives each configured key a deployment alias and tries the aliases in order. It makes one attempt per deployment and returns the winning deployment ID. All exhausted routes yield `503` with `{"detail":"all providers unavailable"}`.
-- **Request-scoped simulation.** A valid `X-Simulate-Failure` excludes the specified keys from that request's route. The supported statuses are `429`, `500`, `502`, and `503`. Use `*` for every key. The request bypasses cache lookups and writes so the test exercises the eligible provider even for warmed prompts.
-- **Exact cache matches.** LiteLLM's local `Cache` keys each answer on the configured model and the full ordered list of messages, including the system prompt. A hit returns the stored reply and token counts, measures its own latency, and reports a null `key_id` and zero `fallback_attempts`.
-- **Transactional history.** FastAPI loads the session prompt and history in order and appends the current message for inference. SQLite writes the two messages, metadata, and optional prompt change in one transaction after success. A per-session lock keeps concurrent turns in sequence. Deploy one backend worker and one replica per SQLite file.
-- **Per-request usage.** The assistant metadata uses the provider's input and output counts from the response. The input covers the full prompt of that call. The backend copies those counts from the cache on a hit.
+```mermaid
+flowchart LR
+    UI["React chat"] -->|JSON over HTTP| API["FastAPI"]
+    API --> DB["SQLite session history"]
+    API --> CACHE["LiteLLM in-memory cache"]
+    API -->|Cache miss| ROUTER["LiteLLM Router"]
+    ROUTER --> KEYS["Model provider key pool"]
+```
+
+- **Session context.** The browser sends a session ID and the new message. FastAPI loads prior turns from SQLite and sends the model an ordered prompt containing the system instructions, history, and new message. A per-session lock keeps overlapping requests in order. The user message, assistant reply, metadata, and any prompt change are saved together after a successful reply.
+- **Response caching.** The cache key includes the model and full ordered prompt, so matching first turns can share a cached response across sessions. A cache hit preserves the reply and token counts, measures its own latency, and reports `LLM_CACHE`. A new model response reports `LIVE_INFERENCE`.
+- **Ordered failover.** LiteLLM Router tries keys in order and reports the key alias that answered. If the key pool is exhausted, `/chat` returns HTTP `503` with `{"detail":"all providers unavailable"}`. Failed turns leave no session entries.
+- **Per-reply metadata.** The input token count covers the prompt sent for that call, and the output count covers that reply. The UI displays both alongside the model, latency, and resolution source.
+
+### API contract
+
+| Endpoint | Behavior |
+| --- | --- |
+| `GET /health` | Reports database readiness, key pool size, and cache status |
+| `POST /chat` | Accepts `session_id`, `message`, and an optional `system_prompt`. Returns the reply and its metadata |
+| `GET /sessions/{session_id}/messages` | Returns saved user and assistant messages in chronological order |
+
+Invalid chat payloads return HTTP `422`. Unknown sessions return HTTP `404`. Both use a JSON `detail` field.
+
+### Deployment
+
+The live frontend uses Vercel with `frontend` as its project root. The live backend uses Render's Docker runtime and [the backend Dockerfile](backend/Dockerfile). The frontend's `VITE_API_BASE_URL` points to Render, and the backend's `ALLOWED_ORIGINS` includes the Vercel production origin.
+
+For a Render deployment that preserves SQLite history across restarts, mount a persistent disk at `/data` and set `DATABASE_URL=sqlite:////data/app.db`. Use one backend worker and replica per SQLite file. The [Render Blueprint](render.yaml) describes an alternative deployment with both services on Render.
 
 ## Verification
 
-The backend tests use a controlled OpenAI-compatible HTTP server. They exercise the actual LiteLLM Router and cache without live credentials. From the repository root, with the virtual environment active:
+### Deployed API
+
+From the project root, run the verification script against the public backend.
+
+```sh
+python scripts/verify_api.py --api-base https://lyftr-chat-assignment.onrender.com
+```
+
+The script checks health, identical live and cached answers, per-request token counts, ordered history, key failover, and validation and availability errors. For local API verification, run `python scripts/verify_api.py` with the backend running and failure simulation enabled.
+
+To see caching on the frontend, send a fresh prompt, start a new chat, and send the exact same prompt again. Compare the source and latency on both replies.
+
+### Failure simulation
+
+When `ENABLE_FAILURE_SIMULATION=true`, add `X-Simulate-Failure` to a `POST /chat` request. Simulated requests bypass the response cache and apply only to that request.
+
+| Header value | Expected result with two configured keys |
+| --- | --- |
+| `key_1=429` | `key_2` returns a live reply after the first key is rate-limited |
+| `key_1=500` | `key_2` returns a live reply after the first key encounters a server error |
+| `*=429` | HTTP `503` with `all providers unavailable` |
+
+### Automated tests
+
+The backend test suite uses a controlled OpenAI-compatible HTTP provider to exercise LiteLLM routing and caching without live credentials. From the project root, with the virtual environment active, run these commands.
 
 ```sh
 python -m pip install -r backend/requirements-dev.txt
@@ -94,29 +134,15 @@ cd backend
 python -m pytest -q
 ```
 
-From the repository root, run the smoke checks against a running service with failure simulation enabled:
-
-```sh
-python scripts/verify_api.py
-python scripts/verify_api.py --api-base https://your-api.onrender.com
-```
-
-The script checks `/health`, identical live and cached replies across sessions, per-request usage, multi-turn history, failover to `key_2` on `429` and `500`, and the `503`, `422`, and `404` error responses. It creates unique verification sessions each run.
-
-### Demo recording outline
-
-- **0:00–0:40** Open the public frontend, send a fresh prompt, and point out `LIVE_INFERENCE`, the model, latency, and tokens. Send a follow-up about the first message to show conversation context.
-- **0:40–1:15** Start a new chat and repeat the first prompt verbatim. Show `LLM_CACHE`, the identical reply, and the lower latency.
-- **1:15–2:10** Run the verification script against the public API on screen. Show `/health`, ordered history, `key_2` answering after the simulated failure, and the clean `503` when all keys fail.
-- **2:10–2:30** Briefly explain why the cache uses the full prompt and how the mounted SQLite disk preserves history. Record with your own narration, upload the video where it can be opened without signing in, and add the URL above.
-
 ## Setup Used
 
-- Codex desktop and PowerShell for implementation and local verification.
-- React, Vite, FastAPI, LiteLLM, SQLite, Docker Compose, and pytest.
+- **Development** Codex desktop and PowerShell.
+- **Frontend** React and Vite.
+- **Backend** FastAPI, Python, LiteLLM, and SQLite.
+- **Deployment and testing** Docker Compose, Vercel, Render, and pytest.
 
 ## Bonus features (if any)
 
-- A session settings dialog lets you set or clear a custom system prompt. The backend stores it with the session and includes it in the cache key.
-- The chat supports Markdown replies and shows the winning key ID and fallback count where applicable.
-- A deployment Blueprint and a dependency-free API verification script support the live demo.
+- A session settings dialog lets users set or clear a custom system prompt. The cache key includes the effective prompt.
+- The chat renders Markdown and displays the winning key alias and fallback count when available.
+- The dependency-free API verification script provides a repeatable way to test a running service.
