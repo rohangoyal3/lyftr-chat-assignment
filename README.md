@@ -6,10 +6,10 @@ Milo Chat is a React and FastAPI chatbot with SQLite conversation history, autom
 
 | Deliverable | URL |
 | --- | --- |
-| Frontend | Pending deployment |
-| Backend | Pending deployment |
+| Frontend | [Milo on Vercel](https://lyftr-chat-assignment.vercel.app/) |
+| Backend | [FastAPI on Render](https://lyftr-chat-assignment.onrender.com/) |
 | Public GitHub repository | [rohangoyal3/lyftr-chat-assignment](https://github.com/rohangoyal3/lyftr-chat-assignment) |
-| Demo video | Pending recording and upload |
+| Demo video | Shareable URL pending |
 
 ### Deploy on Render
 
